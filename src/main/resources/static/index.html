@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Task Manager</title>
@@ -10,7 +11,7 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-        }
+        }  
 
         body {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -161,6 +162,10 @@
             margin-bottom: 8px;
         }
 
+        .hidden {
+            display: none;
+        }
+
         .empty-text {
             font-size: 13px;
             color: #9ca3af;
@@ -169,67 +174,67 @@
         }
     </style>
 </head>
-<body>
+<p class="subtitle">Simple UI connected to your Java API</p>
 
-<div class="app-container">
-    <h1>Task Manager</h1>
-    <p class="subtitle">Simple UI connected to your Java API</p>
+<div id="error" class="error-message hidden"></div>
+<h1>Task Manager</h1>
+<p class="subtitle">Simple UI connected to your Java API</p>
 
-    <div id="error" class="error-message" style="display:none;"></div>
+<div id="error" class="error-message hidden"></div>
 
-    <form class="task-form" id="taskForm">
-        <input type="text" id="taskTitle" placeholder="Add a new task..." autocomplete="off" />
-        <button type="submit">Add</button>
-    </form>
+<form class="task-form" id="taskForm">
+    <ul id="taskList" class="task-list"></ul>
+
+    <p id="emptyText" class="empty-text hidden">No tasks yet. Add one above.</p>
 
     <ul id="taskList" class="task-list"></ul>
 
-    <p id="emptyText" class="empty-text" style="display:none;">No tasks yet. Add one above.</p>
+    <p id="emptyText" class="empty-text hidden">No tasks yet. Add one above.</p>
 
     <div class="status-bar">
         <span id="taskCount">0 tasks</span>
         <span id="lastUpdated"></span>
     </div>
-</div>
+    </div>
 
-<script>
-    const API_BASE = "/api/tasks";
+    <script>
+        const API_BASE = "/api/tasks";
 
-    const taskForm = document.getElementById("taskForm");
-    const taskTitleInput = document.getElementById("taskTitle");
-    const taskList = document.getElementById("taskList");
-    const errorBox = document.getElementById("error");
-    const taskCount = document.getElementById("taskCount");
-    const lastUpdated = document.getElementById("lastUpdated");
-    const emptyText = document.getElementById("emptyText");
-
-    function showError(message) {
-        errorBox.textContent = message;
-        errorBox.style.display = "block";
+        const taskForm = document.getElementById("taskForm");
+        const taskTitleInput = document.getElementById("taskTitle");
+        const taskList = document.getElementById("taskList");
+        const errorBox = document.getElementById("error");
+        function showError(message) {
+            errorBox.textContent = message;
+            errorBox.classList.remove("hidden");
+            setTimeout(() => {
+                errorBox.classList.add("hidden");
+            }, 3000);
+        }
         setTimeout(() => {
             errorBox.style.display = "none";
         }, 3000);
-    }
 
-    async function fetchTasks() {
-        try {
-            const res = await fetch(API_BASE);
-            if (!res.ok) {
-                throw new Error("Failed to load tasks");
+        async function fetchTasks() {
+            try {
+                const res = await fetch(API_BASE);
+                if (!res.ok) {
+                    throw new Error("Failed to load tasks");
+                }
+                const tasks = await res.json();
+                renderTasks(tasks);
+            } catch (err) {
+                showError(err.message);
             }
-            const tasks = await res.json();
-            renderTasks(tasks);
-        } catch (err) {
-            showError(err.message);
         }
-    }
-
-    function renderTasks(tasks) {
-        taskList.innerHTML = "";
+        function renderTasks(tasks) {
+            taskList.innerHTML = "";
 
         if (!tasks || tasks.length === 0) {
+            emptyText.classList.remove("hidden");
             emptyText.style.display = "block";
         } else {
+            emptyText.classList.add("hidden");
             emptyText.style.display = "none";
         }
 
@@ -280,71 +285,72 @@
         lastUpdated.textContent = "Updated: " + new Date().toLocaleTimeString();
     }
 
-    async function createTask(title) {
-        try {
-            const res = await fetch(API_BASE, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ title })
-            });
+        async function createTask(title) {
+            try {
+                const res = await fetch(API_BASE, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ title })
+                });
 
-            if (!res.ok) {
-                throw new Error("Failed to create task");
+                if (!res.ok) {
+                    throw new Error("Failed to create task");
+                }
+
+                taskTitleInput.value = "";
+                await fetchTasks();
+            } catch (err) {
+                showError(err.message);
             }
-
-            taskTitleInput.value = "";
-            await fetchTasks();
-        } catch (err) {
-            showError(err.message);
         }
-    }
 
-    async function toggleTask(id) {
-        try {
-            const res = await fetch(`${API_BASE}/${id}`, {
-                method: "PUT"
-            });
+        async function toggleTask(id) {
+            try {
+                const res = await fetch(`${API_BASE}/${id}`, {
+                    method: "PUT"
+                });
 
-            if (!res.ok) {
-                throw new Error("Failed to update task");
+                if (!res.ok) {
+                    throw new Error("Failed to update task");
+                }
+
+                await fetchTasks();
+            } catch (err) {
+                showError(err.message);
             }
-
-            await fetchTasks();
-        } catch (err) {
-            showError(err.message);
         }
-    }
 
-    async function deleteTask(id) {
-        try {
-            const res = await fetch(`${API_BASE}/${id}`, {
-                method: "DELETE"
-            });
+        async function deleteTask(id) {
+            try {
+                const res = await fetch(`${API_BASE}/${id}`, {
+                    method: "DELETE"
+                });
 
-            if (!res.ok) {
-                throw new Error("Failed to delete task");
+                if (!res.ok) {
+                    throw new Error("Failed to delete task");
+                }
+
+                await fetchTasks();
+            } catch (err) {
+                showError(err.message);
             }
-
-            await fetchTasks();
-        } catch (err) {
-            showError(err.message);
         }
-    }
 
-    taskForm.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const title = taskTitleInput.value.trim();
-        if (!title) {
-            showError("Task title is required");
-            return;
-        }
-        createTask(title);
-    });
+        taskForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const title = taskTitleInput.value.trim();
+            if (!title) {
+                showError("Task title is required");
+                return;
+            }
+            createTask(title);
+        });
 
-    fetchTasks();
-</script>
+        fetchTasks();
+    </script>
 
-</body>
+    </body>
+
 </html>

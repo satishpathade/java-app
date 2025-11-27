@@ -1,0 +1,1 @@
+# jaav app deploy on EC2
